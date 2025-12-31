@@ -57,6 +57,9 @@ if "current_thread_id" not in st.session_state:
     # Default to a new random session
     st.session_state.current_thread_id = str(uuid.uuid4())
 
+if "last_status_message" not in st.session_state:
+    st.session_state.last_status_message = None
+
 # --- SIDEBAR: HISTORY ---
 with st.sidebar:
     st.title("🗂️ Chat History")
@@ -64,6 +67,7 @@ with st.sidebar:
     # 1. New Chat Button
     if st.button("➕ New Session", use_container_width=True):
         st.session_state.current_thread_id = str(uuid.uuid4())
+        st.session_state.last_status_message = None
         st.rerun()
 
     st.markdown("---")
@@ -96,6 +100,7 @@ with st.sidebar:
         # If user switches selection, update state
         if selected_thread != st.session_state.current_thread_id:
             st.session_state.current_thread_id = selected_thread
+            st.session_state.last_status_message = None
             st.rerun()
     else:
         st.info("No past chats found.")
@@ -133,11 +138,24 @@ for msg in graph_messages:
     with st.chat_message(role):
         st.markdown(msg.content)
 
+# Display persistent status message
+if st.session_state.last_status_message:
+    msg = st.session_state.last_status_message
+    if msg["type"] == "info":
+        st.info(msg["content"])
+    elif msg["type"] == "success":
+        st.success(msg["content"])
+    elif msg["type"] == "error":
+        st.error(msg["content"])
+
 # 2. Handle User Input
 prompt_label = "Give feedback to adjust plan..." if is_awaiting_feedback else "E.g., I want to be a Data Scientist..."
 
 if user_input := st.chat_input(prompt_label):
     
+    # Clear previous status on new input
+    st.session_state.last_status_message = None
+
     # Render user message immediately
     with st.chat_message("user"):
         st.markdown(user_input)
@@ -201,10 +219,16 @@ if user_input := st.chat_input(prompt_label):
             if final_snapshot.next:
                 if final_snapshot.next[0] == "human_review":
                     status_box.update(label="Waiting for Review", state="running", expanded=False)
-                    st.info("The plan is ready for your review. Please provide feedback or type 'Approve' to finish.")
+                    st.session_state.last_status_message = {
+                        "type": "info", 
+                        "content": "The plan is ready for your review. Please provide feedback or type 'Approve' to finish."
+                    }
             else:
                 status_box.update(label="Complete", state="complete", expanded=False)
-                st.success("Plan Approved! Good luck with your learning journey.")
+                st.session_state.last_status_message = {
+                    "type": "success", 
+                    "content": "Plan Approved! Good luck with your learning journey."
+                }
                 
             # Force a rerun to update the chat history view properly
             time.sleep(1)
