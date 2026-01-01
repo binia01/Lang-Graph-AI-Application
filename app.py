@@ -105,6 +105,21 @@ with st.sidebar:
     else:
         st.info("No past chats found.")
 
+    st.markdown("---")
+    st.header("🗺️ Workflow Visualization")
+    
+    try:
+        # 1. Get the graph object
+        graph_drawable = st.session_state.workflow.graph.get_graph()
+        
+        # 2. Convert to PNG image bytes
+        graph_png = graph_drawable.draw_mermaid_png()
+        
+        # 3. Display
+        st.image(graph_png, caption="Current Logic Flow")
+    except Exception as e:
+        st.warning("Could not visualize graph. (Make sure 'grandalf' is installed)")
+
 # --- LOAD STATE FROM GRAPH ---
 app = st.session_state.workflow.graph
 config = {"configurable": {"thread_id": st.session_state.current_thread_id}}
